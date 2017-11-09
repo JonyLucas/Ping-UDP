@@ -26,13 +26,19 @@ public class PingClient {
 		// Inicia a contagem do tempo (timestamp)
 		long initial_time = System.currentTimeMillis();
 
+		// Variavel para calcular o Estimated RTT (valor medio), o RTT minimo e o RTT maximo - Questao extra
+		double estimatedRtt = 0;
+		double minRtt = Double.MAX_VALUE;
+		double maxRtt = Double.MIN_VALUE;
+
 		// Loop para tentar enviar 10 requisicoes UDP e tentar receber as 10 respostas do servidor 
 		for (int i  = 0; i < 10; i++) { 
 
-			long current_time = System.currentTimeMillis() - initial_time;
+			long sent_time = System.currentTimeMillis() - initial_time;
 			//System.out.println(current_time);
 
-			String pack = "PING " + i + " " + (int)current_time + " "+ (char)13 + (char)10;
+			// Cria a mensagem que será enviada pelo UDP
+			String pack = "PING " + i + " " + (int)sent_time + " "+ (char)13 + (char)10;
 			byte[] message = pack.getBytes();
 			
 			// Cria o Datagrama que contem a mensagem e que será enviado para o servidor
@@ -55,7 +61,28 @@ public class PingClient {
 					throw new SocketTimeoutException();
 				} 
 				// Block until the host receives a UDP packet and the time not exceeded the timeout. 
-				socket.receive(reply); 
+				socket.receive(reply);
+
+				// Tempo de recebimento do pacote UDP
+				long receive_time = System.currentTimeMillis() - initial_time;
+				long sampleRtt = receive_time - sent_time;
+
+				// Calcula o RTT medio
+				if(estimatedRtt == 0){ // Primeiro segmento
+					estimatedRtt = sampleRtt;
+				}else{
+					estimatedRtt = 0.875 * estimatedRtt + 0.125 * sampleRtt;
+				}
+
+				// Calcula o Rtt minimo
+				if(minRtt > sampleRtt){
+					minRtt = sampleRtt;
+				}
+
+				// Calcula o Rtt maximo
+				if(maxRtt < sampleRtt){
+					maxRtt = sampleRtt;
+				}
 
 				// Print the recieved data. 
 				printData(reply);
@@ -65,19 +92,10 @@ public class PingClient {
 			}
 
 		} 
-	}
 
-
-	/** Utilizado para converter um inteiro em um array de bytes **/
-	private static byte[] intToByteArray(long n){
-		String numero = Long.toString(n);
-		char[] array = numero.toCharArray();
-		byte[] byteArray = new byte[array.length];
-		for(int i = 0; i < array.length; i++){
-			byteArray[i] = (byte) array[i];
-		}
-
-		return byteArray;
+		System.out.println("\nEstimated Rtt: " + estimatedRtt);
+		System.out.println("Minimum Rtt: " + minRtt);
+		System.out.println("Maximum Rtt: " + maxRtt);
 	}
 
 	/* * Print ping data to the standard output stream. */ 
