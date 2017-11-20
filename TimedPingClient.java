@@ -18,7 +18,7 @@ public class TimedPingClient {
 	public static void main(String[] args) throws Exception {
 	// Get command line argument. 
 		if (args.length != 2) { 
-			System.out.println("Required arguments: host port, server address and server port");
+			System.out.println("Required arguments: server address and server port");
 			return; 
 		} 
 		

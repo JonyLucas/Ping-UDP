@@ -10,7 +10,7 @@ public class PingClient {
 	public static void main(String[] args) throws Exception {
 	// Get command line argument. 
 		if (args.length != 2) { 
-			System.out.println("Required arguments: host port, server address and server port");
+			System.out.println("Required arguments: server address and server port");
 			return; 
 		} 
 		int port = 8697;
@@ -44,6 +44,11 @@ public class PingClient {
 			// Cria o Datagrama que contem a mensagem e que será enviado para o servidor
 			DatagramPacket request = new DatagramPacket(message, message.length, server_address, server_port);
 
+			// Simular uma perda de pacote. 
+			if (random.nextDouble() < LOSS_RATE) { 
+				System.out.println(" Request not sent");
+				continue;
+			} 
 			// Simulate network delay. 
 			Thread.sleep((int) (random.nextDouble() * 2 * AVERAGE_DELAY));
 
@@ -56,10 +61,7 @@ public class PingClient {
 			socket.setSoTimeout(1000);
 
 			try{
-				// Simular uma perda de pacote. 
-				if (random.nextDouble() < LOSS_RATE) { 
-					throw new SocketTimeoutException();
-				} 
+
 				// Block until the host receives a UDP packet and the time not exceeded the timeout. 
 				socket.receive(reply);
 
