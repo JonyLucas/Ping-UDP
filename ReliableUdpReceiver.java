@@ -24,7 +24,10 @@ public class ReliableUdpReceiver {
 			// Create a datagram packet to hold incomming UDP packet. 
 			DatagramPacket request = new DatagramPacket(new byte[1024], 1024); 
 
-			// Block until the host receives a UDP packet. 
+			// Seta o timeout para infinito
+			socket.setSoTimeout(0);
+			// Block until the host receives a UDP packet.
+			
 			socket.receive(request); 
 
 			// Print the recieved data. 
@@ -35,8 +38,8 @@ public class ReliableUdpReceiver {
 			int clientPort = request.getPort();
 			byte[] buf = request.getData();
 			String ack_message = "ACK " + new String(buf);
-			buf = ack_message.getBytes();
-			DatagramPacket ack = new DatagramPacket(buf, buf.length, clientHost, clientPort);
+			byte[] buf_ack = ack_message.getBytes();
+			DatagramPacket ack = new DatagramPacket(buf_ack, buf_ack.length, clientHost, clientPort);
 
 			try{
 				// Decide whether to reply, or simulate packet loss. 			
@@ -64,6 +67,12 @@ public class ReliableUdpReceiver {
 
 				// Print the recieved data.
 				printData(reply_ack);
+
+				String data = new String (reply_ack.getData());
+				if(data.contains("END")){
+					System.out.println("THE ENDDDD");
+					continue;
+				}
 
 			}catch(SocketTimeoutException ste){
 				System.out.println(" packet lost.");

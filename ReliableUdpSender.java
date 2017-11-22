@@ -83,7 +83,12 @@ public class ReliableUdpSender {
 			}
 
 			// Cria a mensagem que será enviada como resposta ao ACK recebido
-			String ack_reply_message = "Sequence " + (i+1) + (char)13 + (char)10;
+			String ack_reply_message;
+			if(i == n-1){
+				ack_reply_message = "END " + (char)13 + (char)10;
+			}else{
+				ack_reply_message = "Sequence " + (i+1) + (char)13 + (char)10;
+			}
 			byte[] sequence = ack_reply_message.getBytes();
 			
 			// Cria o Datagrama que contem a mensagem e que será enviado para o servidor
