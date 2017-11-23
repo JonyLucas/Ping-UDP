@@ -10,7 +10,6 @@ public class ReliableUdpSender {
 	private static Random random;
 	private static DatagramSocket socket;
 
-
 	public static void main(String[] args) throws Exception {
 	// Get command line argument. 
 		if (args.length != 3) { 
@@ -26,7 +25,7 @@ public class ReliableUdpSender {
 		// Numero de envios da mensagem
 		System.out.print("Number of message submissions: ");
 		int n = scan.nextInt();
-		
+
 		scan.close();
 		
 		// Create random number generator for use in simulating packet loss and network delay. 
@@ -37,6 +36,9 @@ public class ReliableUdpSender {
 
 		// Inicia a contagem do tempo (timestamp)
 		long initial_time = System.currentTimeMillis();
+
+		// String criada para armazenar temporariamente o valor da mensagem recebida
+		String data;
 
 		// Loop para tentar enviar 10 requisicoes UDP e tentar receber as 10 respostas do servidor 
 		for (int i = 0; i < n; i++) { 
@@ -55,64 +57,45 @@ public class ReliableUdpSender {
 				// Simular uma perda de pacote. 
 				if (random.nextDouble() < LOSS_RATE) { 
 					throw new IOException();
-				} 
+				}
+
 				// Simulate network delay. 
 				Thread.sleep((int) (random.nextDouble() * 2 * AVERAGE_DELAY));
 				socket.send(request);
 				System.out.println(" Request sent.");
-			}catch(IOException ioe){
-				System.out.println(" Erro to sent the packet");
-				resend_message(request);
-			}	
 
-			// Create a datagram packet to hold incomming UDP packet. 
-			DatagramPacket reply = new DatagramPacket(new byte[1024], 1024);
-			//Estabelece o tempo limite (em milisegundos) que permanece bloqueado aguardando o pacote
-			socket.setSoTimeout(1000);
+				// Create a datagram packet to hold incomming UDP packet. 
+				DatagramPacket reply = new DatagramPacket(new byte[1024], 1024);
 
-			try{
+				//Estabelece o tempo limite (em milisegundos) que permanece bloqueado aguardando o pacote
+				socket.setSoTimeout(1000);
+
 				// Block until the host receives a UDP packet and the time not exceeded the timeout. 
 				socket.receive(reply);
 
-				// Print the recieved data. 
+				data = new String(reply.getData());
+
+				if(!data.contains("ACK " + pack)){
+					throw new IOException();
+				}
+
 				printData(reply);
 
 			}catch(SocketTimeoutException ste){
 				System.out.println(" packet lost.");
 				resend_message(request);
-			}
-
-			// Cria a mensagem que será enviada como resposta ao ACK recebido
-			String ack_reply_message;
-			if(i == n-1){
-				ack_reply_message = "END " + (char)13 + (char)10;
-			}else{
-				ack_reply_message = "Sequence " + (i+1) + (char)13 + (char)10;
-			}
-			byte[] sequence = ack_reply_message.getBytes();
-			
-			// Cria o Datagrama que contem a mensagem e que será enviado para o servidor
-			DatagramPacket ack_reply = new DatagramPacket(sequence, sequence.length, server_address, server_port);
-
-			try{
-				// Simular uma perda de pacote. 
-				if (random.nextDouble() < LOSS_RATE) { 
-					throw new IOException();
-				} 
-				// Simulate network delay. 
-				Thread.sleep((int) (random.nextDouble() * 2 * AVERAGE_DELAY));
-				socket.send(ack_reply);
-				System.out.println(" Request sent.");
 			}catch(IOException ioe){
 				System.out.println(" Erro to sent the packet");
-				resend_message(ack_reply);
-			}
+				resend_message(request);
+			}	
 
-		} 
+		}
+
 	}
 
 	public static void resend_message(DatagramPacket dp) throws Exception{
 		boolean ack = false;
+		String data, pack = new String(dp.getData());
 
 		while(ack == false){
 
@@ -121,33 +104,39 @@ public class ReliableUdpSender {
 				Thread.sleep((int) (random.nextDouble() * 2 * AVERAGE_DELAY));
 				socket.send(dp);
 				System.out.println(" Request resent.");
-			}catch(IOException ioe){
-				System.out.println(" Erro to sent the packet");
-				ack = false;
-				continue;
-			}
 
-			// Create a datagram packet to hold incomming UDP packet. 
-			DatagramPacket reply = new DatagramPacket(new byte[1024], 1024);
-			//Estabelece o tempo limite (em milisegundos) que permanece bloqueado aguardando o pacote
-			socket.setSoTimeout(1000);		
-			
-			try{
+				// Create a datagram packet to hold incomming UDP packet. 
+				DatagramPacket reply = new DatagramPacket(new byte[1024], 1024);
+
+				//Estabelece o tempo limite (em milisegundos) que permanece bloqueado aguardando o pacote
+				socket.setSoTimeout(1000);		
+
 				// Simular uma perda de pacote. 
 				if (random.nextDouble() < LOSS_RATE) { 
 					throw new SocketTimeoutException();
 				} 
+				
 				// Block until the host receives a UDP packet and the time not exceeded the timeout. 
 				socket.receive(reply);
 
-				// Print the recieved data. 
+				data = new String(reply.getData());
+
+				if(!data.contains("ACK " + pack))
+					continue;
+
 				printData(reply);
+
 				ack = true;
+
 			}catch(SocketTimeoutException ste){
 				System.out.println(" packet lost.");
 				ack = false;
 				continue;
 				//resend_message(request); //Pode ser feito com recursividade
+			}catch(IOException ioe){
+				System.out.println(" Erro to sent the packet");
+				ack = false;
+				continue;
 			}
 		}
 	}
